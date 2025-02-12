@@ -3,35 +3,59 @@
 #include <cmath>
 #include <iostream>
 #include <stdexcept>
+#include <random>
 
 std::vector<int64_t> LWEUtils::sample_gaussian(
     const LWEParams& params,
     size_t size,
     double std_dev,
-    std::mt19937& rng
+    std::mt19937 rng
 ) {
     std::vector<int64_t> result(size);
-    std::normal_distribution<double> dist(0.0, std_dev);
     
-    for (size_t i = 0; i < size; ++i) {
-        double sample = 0;
-        // Use Box-Muller transform
-        for (int j = 0; j < 12; j++) { // Increase samples for better distribution
-            sample += dist(rng);
-        }
-        sample /= 12;
+    // Box-Muller transform with proper scaling
+    auto sample_gaussian_real = [&rng, std_dev]() -> double {
+        std::uniform_real_distribution<double> uniform(0.0, 1.0);
         
-        int64_t discrete_sample = static_cast<int64_t>(std::round(sample));
+        double u1 = uniform(rng);
+        double u2 = uniform(rng);
+        
+        double radius = std::sqrt(-2.0 * std::log(u1));
+        double theta = 2.0 * M_PI * u2;
+        
+        return std_dev * radius * std::cos(theta);
+    };
+    
+    // Discrete Gaussian sampling with proper scaling
+    auto sample_discrete_gaussian = [&sample_gaussian_real, q = params.q]() -> int64_t {
+        double sample = sample_gaussian_real();
+        int64_t discrete = static_cast<int64_t>(std::round(sample));
         
         // Centered modular reduction
-        discrete_sample = ((discrete_sample % params.q) + params.q) % params.q;
-        if (discrete_sample > params.q/2) {
-            discrete_sample -= params.q;
+        discrete = ((discrete % q) + q) % q;
+        if (discrete > q/2) {
+            discrete -= q;
         }
-        result[i] = discrete_sample;
+        return discrete;
+    };
+    
+    // Generate samples
+    for (size_t i = 0; i < size; ++i) {
+        result[i] = sample_discrete_gaussian();
     }
     
     return result;
+}
+
+
+std::vector<int64_t> LWEUtils::sample_gaussian_with_seed(
+    const LWEParams& params,
+    size_t size,
+    double std_dev,
+    uint32_t seed
+) {
+    std::mt19937 rng(seed);
+    return sample_gaussian(params, size, std_dev, rng);
 }
 
 std::vector<std::vector<int64_t>> LWEUtils::generate_matrix_A(

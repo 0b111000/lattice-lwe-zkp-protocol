@@ -23,7 +23,6 @@ bool Verifier::verify(
     const Challenge& challenge,
     const Response& response
 ) {
-    std::cout << "Starting verification..." << std::endl;
     
     if (response.z.empty() || response.r_prime.empty()) {
         std::cout << "Invalid response received" << std::endl;
@@ -53,20 +52,10 @@ bool Verifier::verify(
         int64_t prod = (challenge.c * t_i) % params_.q;
         right_side[i] = LWEUtils::centered_mod(u_i + prod, params_.q);
     }
-    
-    // Add debug output for the first few indices
-    for (size_t i = 0; i < std::min(size_t(5), params_.m); ++i) {
-        std::cout << "Index " << i << ": "
-                  << "Left=" << left_side[i] 
-                  << " Right=" << right_side[i] << std::endl;
-    }
-    
+
     // Check equality
     for (size_t i = 0; i < params_.m; ++i) {
         if (left_side[i] != right_side[i]) {
-            std::cout << "Verification failed at index " << i << std::endl;
-            std::cout << "Left side: " << left_side[i] << std::endl;
-            std::cout << "Right side: " << right_side[i] << std::endl;
             return false;
         }
     }
