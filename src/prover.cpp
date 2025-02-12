@@ -7,8 +7,7 @@
 
 Prover::Prover(const LWEParams& params)
     : params_(params)
-    , rng_(std::chrono::system_clock::now().time_since_epoch().count()) 
-{}
+    , rng_(std::random_device{}()) {}
 
 LWEInstance Prover::setup() {
     // Generate the public matrix A

@@ -1,23 +1,67 @@
 cmake_minimum_required(VERSION 3.10)
-project(lwe_zkp)
+project(lattice-zkp)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# Add include directory
-include_directories(${PROJECT_SOURCE_DIR}/include)
+# Include FetchContent module
+include(FetchContent)
 
-# Create library
-add_library(lwe_zkp
+# Download and build Google Test
+FetchContent_Declare(
+    googletest
+    GIT_REPOSITORY https://github.com/google/googletest.git
+    GIT_TAG release-1.12.1 # Use a specific version of Google Test
+)
+# Ensure Google Test is available
+FetchContent_MakeAvailable(googletest)
+
+# Download and build Google Benchmark
+FetchContent_Declare(
+    benchmark
+    GIT_REPOSITORY https://github.com/google/benchmark.git
+    GIT_TAG v1.8.2 # Use a specific version of Google Benchmark
+)
+# Ensure Google Benchmark is available
+FetchContent_GetProperties(benchmark)
+if(NOT benchmark_POPULATED)
+    FetchContent_Populate(benchmark)
+    # Manually configure Google Benchmark to use the already downloaded Google Test
+    set(BENCHMARK_ENABLE_TESTING OFF CACHE BOOL "Disable Google Benchmark tests" FORCE)
+    add_subdirectory(${benchmark_SOURCE_DIR} ${benchmark_BINARY_DIR})
+endif()
+
+include_directories(${CMAKE_SOURCE_DIR}/include)
+
+# Main library
+add_library(lattice-zkp
     src/lwe_utils.cpp
     src/prover.cpp
     src/verifier.cpp
 )
 
-# Create example executable
-add_executable(zkp_example examples/main.cpp)
-target_link_libraries(zkp_example lwe_zkp)
+# Tests
+add_executable(zkp_tests
+    test/test_zkp.cpp
+    test/test_cases.cpp
+)
+target_link_libraries(zkp_tests
+    PRIVATE
+    lattice-zkp
+    GTest::gtest
+    GTest::gtest_main
+)
 
-# Add compiler flags
-target_compile_options(lwe_zkp PRIVATE -Wall -Wextra)
-target_compile_options(zkp_example PRIVATE -Wall -Wextra)
+# Benchmarks
+add_executable(benchmark_zkp
+    test/benchmark_zkp.cpp
+)
+target_link_libraries(benchmark_zkp
+    PRIVATE
+    lattice-zkp
+    benchmark::benchmark
+)
+
+# Enable testing
+enable_testing()
+add_test(NAME zkp_tests COMMAND zkp_tests)

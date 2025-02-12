@@ -9,7 +9,14 @@ public:
         const LWEParams& params,
         size_t size,
         double std_dev,
-        std::mt19937& rng
+        std::mt19937 rng
+    );
+
+    static std::vector<int64_t> sample_gaussian_with_seed(
+        const LWEParams& params,
+        size_t size,
+        double std_dev,
+        uint32_t seed
     );
     
     static std::vector<std::vector<int64_t>> generate_matrix_A(
@@ -28,7 +35,6 @@ public:
         int64_t q
     );
 
-    // New helper functions
     static int64_t centered_mod(int64_t x, int64_t q) {
         x = ((x % q) + q) % q;
         if (x > q/2) {
